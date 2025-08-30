@@ -14,7 +14,8 @@
     "seed:registrations": "node utils/createSampleRegistrations.js",
     "seed:organizer": "node utils/createOrganizerData.js",
     "check": "node utils/checkDependencies.js",
-    "setup": "npm run check && npm run seed && npm run seed:events && npm run seed:registrations"
+    "setup": "npm run check && npm run seed && npm run seed:events && npm run seed:registrations",
+    "postinstall": "npm rebuild sharp --platform=linux --arch=x64"
   },
   "keywords": [
     "campus",

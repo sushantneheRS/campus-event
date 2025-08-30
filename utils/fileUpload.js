@@ -1,9 +1,26 @@
 const multer = require('multer');
-const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
 const { AppError } = require('../middleware/errorHandler');
+const SimpleImageProcessor = require('./imageProcessor');
+
+// Try to load sharp, but handle cases where it's not available
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (error) {
+  console.warn('⚠️ Sharp module not available. Image processing will be limited.');
+  sharp = null;
+}
+
+// Initialize fallback processor
+const fallbackProcessor = new SimpleImageProcessor();
+
+// Check if sharp is available
+const isSharpAvailable = () => {
+  return sharp !== null;
+};
 
 // Ensure upload directories exist
 const ensureUploadDirs = async () => {
@@ -57,17 +74,25 @@ const resizeUserPhoto = async (req, res, next) => {
     const filename = `user-${req.user.id}-${Date.now()}.jpeg`;
     const filepath = path.join('uploads', 'users', filename);
 
-    await sharp(req.file.buffer)
-      .resize(500, 500)
-      .toFormat('jpeg')
-      .jpeg({ quality: 90 })
-      .toFile(filepath);
+    if (isSharpAvailable()) {
+      // Use Sharp for image processing if available
+      await sharp(req.file.buffer)
+        .resize(500, 500)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(filepath);
+    } else {
+      // Fallback: save original file without processing
+      await fallbackProcessor.saveImage(req.file.buffer, filepath);
+      console.log('ℹ️ Image saved without processing (Sharp not available)');
+    }
 
     req.file.filename = filename;
     req.file.path = filepath;
 
     next();
   } catch (error) {
+    console.error('Error processing image:', error);
     return next(new AppError('Error processing image', 500));
   }
 };
@@ -80,40 +105,48 @@ const resizeEventImage = async (req, res, next) => {
     const filename = `event-${uuidv4()}-${Date.now()}.jpeg`;
     const filepath = path.join('uploads', 'events', filename);
 
-    // Create multiple sizes
-    const sizes = [
-      { width: 1200, height: 600, suffix: 'large' },
-      { width: 800, height: 400, suffix: 'medium' },
-      { width: 400, height: 200, suffix: 'small' }
-    ];
+    if (isSharpAvailable()) {
+      // Create multiple sizes using Sharp
+      const sizes = [
+        { width: 1200, height: 600, suffix: 'large' },
+        { width: 800, height: 400, suffix: 'medium' },
+        { width: 400, height: 200, suffix: 'small' }
+      ];
 
-    const resizedImages = {};
+      const resizedImages = {};
 
-    for (const size of sizes) {
-      const sizedFilename = `event-${uuidv4()}-${size.suffix}-${Date.now()}.jpeg`;
-      const sizedFilepath = path.join('uploads', 'events', sizedFilename);
+      for (const size of sizes) {
+        const sizedFilename = `event-${uuidv4()}-${size.suffix}-${Date.now()}.jpeg`;
+        const sizedFilepath = path.join('uploads', 'events', sizedFilename);
 
-      await sharp(req.file.buffer)
-        .resize(size.width, size.height, {
-          fit: 'cover',
-          position: 'center'
-        })
-        .toFormat('jpeg')
-        .jpeg({ quality: 90 })
-        .toFile(sizedFilepath);
+        await sharp(req.file.buffer)
+          .resize(size.width, size.height, {
+            fit: 'cover',
+            position: 'center'
+          })
+          .toFormat('jpeg')
+          .jpeg({ quality: 90 })
+          .toFile(sizedFilepath);
 
-      resizedImages[size.suffix] = {
-        filename: sizedFilename,
-        path: sizedFilepath,
-        url: `/uploads/events/${sizedFilename}`
-      };
+        resizedImages[size.suffix] = {
+          filename: sizedFilename,
+          path: sizedFilepath,
+          url: `/uploads/events/${sizedFilename}`
+        };
+      }
+
+      req.file.resizedImages = resizedImages;
+    } else {
+      // Fallback: save original file without processing
+      await fallbackProcessor.saveImage(req.file.buffer, filepath);
+      console.log('ℹ️ Event image saved without processing (Sharp not available)');
     }
 
-    req.file.resizedImages = resizedImages;
     req.file.filename = filename;
 
     next();
   } catch (error) {
+    console.error('Error processing event image:', error);
     return next(new AppError('Error processing image', 500));
   }
 };
@@ -168,18 +201,25 @@ const validateImageDimensions = (minWidth = 100, minHeight = 100, maxWidth = 500
     if (!req.file) return next();
 
     try {
-      const metadata = await sharp(req.file.buffer).metadata();
-      
-      if (metadata.width < minWidth || metadata.height < minHeight) {
-        return next(new AppError(`Image must be at least ${minWidth}x${minHeight} pixels`, 400));
-      }
-      
-      if (metadata.width > maxWidth || metadata.height > maxHeight) {
-        return next(new AppError(`Image must not exceed ${maxWidth}x${maxHeight} pixels`, 400));
+      if (isSharpAvailable()) {
+        // Use Sharp for metadata if available
+        const metadata = await sharp(req.file.buffer).metadata();
+        
+        if (metadata.width < minWidth || metadata.height < minHeight) {
+          return next(new AppError(`Image must be at least ${minWidth}x${minHeight} pixels`, 400));
+        }
+        
+        if (metadata.width > maxWidth || metadata.height > maxHeight) {
+          return next(new AppError(`Image must not exceed ${maxWidth}x${maxHeight} pixels`, 400));
+        }
+      } else {
+        // Skip validation if Sharp is not available
+        console.log('ℹ️ Image dimension validation skipped (Sharp not available)');
       }
 
       next();
     } catch (error) {
+      console.error('Error validating image dimensions:', error);
       return next(new AppError('Invalid image file', 400));
     }
   };
@@ -220,5 +260,6 @@ module.exports = {
   deleteFiles,
   getFileInfo,
   validateImageDimensions,
-  cleanupOldFiles
+  cleanupOldFiles,
+  isSharpAvailable
 };
