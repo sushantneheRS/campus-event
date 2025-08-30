@@ -1,6 +1,6 @@
 {
   "name": "campus-event-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for Campus Event Management & Notification System",
   "main": "server.js",
   "scripts": {

@@ -33,7 +33,9 @@ const io = new Server(server, {
       "http://localhost:3000",
       "https://campus-event.netlify.app"
     ],
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true
   }
 });
 
@@ -49,9 +51,14 @@ app.use(cors({
     'http://localhost:3000',
     'https://campus-event.netlify.app',
     'https://campus-event.netlify.app/login',
-    'https://campus-event.netlify.app/signup'
+    'https://campus-event.netlify.app/signup',
+    'https://campus-event.netlify.app/dashboard',
+    'https://campus-event.netlify.app/events',
+    'https://campus-event.netlify.app/profile'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting
@@ -139,6 +146,12 @@ app.use('*', (req, res) => {
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
+
+// Global error handler for uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
 
 const PORT = process.env.PORT || 5000;
 
