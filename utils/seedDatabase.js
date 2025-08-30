@@ -15,13 +15,7 @@ const seedDatabase = async () => {
     
     console.log('🌱 Starting database seeding...');
 
-    // Clear existing data (optional - uncomment if needed)
-    // await User.deleteMany({});
-    // await Category.deleteMany({});
-    // await Event.deleteMany({});
-    // console.log('🗑️  Cleared existing data');
 
-    // Create admin user
     const adminExists = await User.findOne({ email: 'admin@campus.edu' });
     if (!adminExists) {
       const admin = await User.create({
