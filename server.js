@@ -92,6 +92,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Route debugging middleware
+app.use('/api/*', (req, res, next) => {
+  console.log(`🔍 Route accessed: ${req.method} ${req.originalUrl}`);
+  console.log(`📍 Available routes:`, {
+    auth: '/api/auth/*',
+    users: '/api/users/*',
+    events: '/api/events/*',
+    registrations: '/api/registrations/*',
+    categories: '/api/categories/*',
+    notifications: '/api/notifications/*',
+    dashboard: '/api/dashboard/*'
+  });
+  next();
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -100,6 +115,24 @@ app.use('/api/registrations', registrationRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard', require('./routes/dashboard'));
+
+// Test endpoint to verify routing
+app.get('/api/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    routes: {
+      auth: '/api/auth',
+      users: '/api/users',
+      events: '/api/events',
+      registrations: '/api/registrations',
+      categories: '/api/categories',
+      notifications: '/api/notifications',
+      dashboard: '/api/dashboard'
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -138,9 +171,35 @@ io.on('connection', (socket) => {
 
 // 404 handler (must be before error handler)
 app.use('*', (req, res) => {
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  console.log(`📍 Available base routes:`, [
+    '/api/auth',
+    '/api/users',
+    '/api/events',
+    '/api/registrations',
+    '/api/categories',
+    '/api/notifications',
+    '/api/dashboard',
+    '/api/health',
+    '/api/test'
+  ]);
+
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    requestedUrl: req.originalUrl,
+    method: req.method,
+    availableRoutes: [
+      '/api/auth/*',
+      '/api/users/*',
+      '/api/events/*',
+      '/api/registrations/*',
+      '/api/categories/*',
+      '/api/notifications/*',
+      '/api/dashboard/*',
+      '/api/health',
+      '/api/test'
+    ]
   });
 });
 

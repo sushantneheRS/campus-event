@@ -9,6 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:server": "node test-server.js",
+    "test:routes": "node test-routes.js",
     "seed": "node utils/seedDatabase.js",
     "seed:events": "node utils/createSampleEvents.js",
     "seed:registrations": "node utils/createSampleRegistrations.js",
