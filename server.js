@@ -39,11 +39,13 @@ const io = new Server(server, {
   }
 });
 
-// Connect to database
-connectDB();
+// Database connection will be awaited before starting the server (see start() below)
 
 // Security middleware
 app.use(helmet());
+
+// Trust proxy (needed for correct secure cookies and IPs on Render)
+app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({
@@ -214,9 +216,20 @@ process.on('uncaughtException', (err) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+// Start server only after successful DB connection
+async function start() {
+  try {
+    await connectDB();
+    server.listen(PORT, () => {
+      console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+start();
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {

@@ -2,16 +2,16 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { generateToken } = require('../utils/helpers');
+const { JWT_COOKIE_EXPIRE } = require('../config/auth');
 const emailService = require('../utils/emailService');
 
 // Helper function to create and send token
 const createSendToken = (user, statusCode, res) => {
   const token = generateToken(user._id);
   
+  const cookieDays = Number(JWT_COOKIE_EXPIRE) || 30;
   const cookieOptions = {
-    expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-    ),
+    expires: new Date(Date.now() + cookieDays * 24 * 60 * 60 * 1000),
     httpOnly: true
   };
   
@@ -92,10 +92,17 @@ const login = catchAsync(async (req, res, next) => {
     return next(new AppError('Please provide email and password', 400));
   }
 
-  // Check for user and include password
-  const user = await User.findByCredentials(email, password);
-
-  createSendToken(user, 200, res);
+  try {
+    // Check for user and include password
+    const user = await User.findByCredentials(email, password);
+    createSendToken(user, 200, res);
+  } catch (err) {
+    // Normalize auth errors
+    const message = err && typeof err.message === 'string' ? err.message : 'Invalid credentials';
+    const isLocked = message.toLowerCase().includes('locked');
+    const statusCode = isLocked ? 423 : 401; // 423 Locked if account lockout
+    return next(new AppError(message === 'Invalid credentials' ? 'Invalid credentials' : message, statusCode));
+  }
 });
 
 // @desc    Logout user
