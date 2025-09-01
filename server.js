@@ -32,7 +32,8 @@ const io = new Server(server, {
     origin: [
       "http://localhost:3000",
       "https://campus-event.netlify.app",
-      "https://campus-event.netlify.app/*"
+      "https://campus-event-management.netlify.app",
+      "https://campus-event-h9ks.onrender.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -53,7 +54,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://campus-event.netlify.app',
-    'https://campus-event.netlify.app/*'
+    'https://campus-event-management.netlify.app',
+    'https://campus-event-h9ks.onrender.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
