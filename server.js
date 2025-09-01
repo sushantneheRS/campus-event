@@ -31,7 +31,8 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-      "https://campus-event.netlify.app"
+      "https://campus-event.netlify.app",
+      "https://campus-event.netlify.app/*"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -52,15 +53,12 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://campus-event.netlify.app',
-    'https://campus-event.netlify.app/login',
-    'https://campus-event.netlify.app/signup',
-    'https://campus-event.netlify.app/dashboard',
-    'https://campus-event.netlify.app/events',
-    'https://campus-event.netlify.app/profile'
+    'https://campus-event.netlify.app/*'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
 
 // Rate limiting
